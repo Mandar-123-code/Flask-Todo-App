@@ -1,0 +1,7 @@
+Flask
+Flask-SQLAlchemy
+gunicorn
+python-dotenv
+Jinja2
+itsdangerous
+Werkzeug

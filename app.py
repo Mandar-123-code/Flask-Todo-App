@@ -7,7 +7,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todo.db'
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
-# ----------------------- Database Model --------------------------
+# ----------------------- Database Models --------------------------
+
 class Todo(db.Model):
     sno = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
@@ -17,13 +18,19 @@ class Todo(db.Model):
     def __repr__(self) -> str:
         return f"{self.sno} - {self.title}"
 
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    password = db.Column(db.String(100), nullable=False)
 
 # ----------------------- Routes --------------------------
+
 @app.route('/', methods=['GET', 'POST'])
 def home():
     title = ""
     desc = ""
-    query = None  # <-- important to initialize it
+    query = request.args.get('query')
 
     if request.method == "POST":
         title = request.form['title']
@@ -33,8 +40,7 @@ def home():
         db.session.commit()
         db.session.query(Todo).filter(Todo.title == '').delete()
         db.session.commit()
-    
-    query = request.args.get('query')
+
     if query:
         allTodo = Todo.query.filter(
             (Todo.title.ilike(f"%{query}%")) |
@@ -44,7 +50,6 @@ def home():
         allTodo = Todo.query.all()
 
     return render_template('index.html', allTodo=allTodo, query=query)
-
 
 
 @app.route('/show')
@@ -82,15 +87,10 @@ def login():
     if request.method == "POST":
         email = request.form['email']
         password = request.form['password']
-
-        # ✅ Save login attempt to logins.log
-        with open("logins.log", "a") as log:
-            log.write(f"{datetime.now()} - Email: {email}\n")
-
         print(f"Login attempt from: {email}")
+        # Optional: Add real login logic with user verification
         return redirect('/')
     return render_template('login.html')
-
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -100,9 +100,9 @@ def signup():
         email = request.form['email']
         password = request.form['password']
 
-        # ✅ Save signup details in signups.log file
-        with open("signups.log", "a") as log:
-            log.write(f"{datetime.now()} - Username: {username}, Email: {email}\n")
+        user = User(username=username, email=email, password=password)
+        db.session.add(user)
+        db.session.commit()
 
         print(f"Signup saved for: {username} - {email}")
         return redirect('/')
@@ -111,4 +111,6 @@ def signup():
 # ----------------------- Main --------------------------
 
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()  # Create tables if not exist
     app.run(debug=True)

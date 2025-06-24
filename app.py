@@ -16,13 +16,19 @@ class Todo(db.Model):
     date_Created = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self) -> str:
-        return f"{self.sno} - {self.title}"
+        return f"Todo({self.sno}) - {self.title}"
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), nullable=False)
     password = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self) -> str:
+        return f"User({self.id}) - {self.username}"
+
 
 # ----------------------- Routes --------------------------
 
@@ -87,8 +93,14 @@ def login():
     if request.method == "POST":
         email = request.form['email']
         password = request.form['password']
-        print(f"Login attempt from: {email}")
-        # Optional: Add real login logic with user verification
+
+        # Optionally verify login from DB
+        user = User.query.filter_by(email=email, password=password).first()
+        if user:
+            print(f"✅ Login success for: {email}")
+        else:
+            print(f"❌ Login failed for: {email}")
+
         return redirect('/')
     return render_template('login.html')
 
@@ -104,13 +116,14 @@ def signup():
         db.session.add(user)
         db.session.commit()
 
-        print(f"Signup saved for: {username} - {email}")
+        print(f"✅ Signup saved for: {username} - {email}")
         return redirect('/')
     return render_template('signup.html')
+
 
 # ----------------------- Main --------------------------
 
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all()  # Create tables if not exist
+        db.create_all()
     app.run(debug=True)
